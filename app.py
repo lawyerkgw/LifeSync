@@ -1,10 +1,3 @@
-import streamlit as st
-from supabase import create_client
-import google.generativeai as genai
-import json
-import pandas as pd
-import plotly.express as px
-import streamlit.components.v1 as components
 # --- [스타일 업그레이드: Custom CSS] ---
 st.markdown("""
     <style>
@@ -35,6 +28,14 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
+import streamlit as st
+from supabase import create_client
+import google.generativeai as genai
+import json
+import pandas as pd
+import plotly.express as px
+import streamlit.components.v1 as components
 
 # --- [대시보드 상단 Metric 레이아웃] ---
 def render_top_metrics(df_actions):
