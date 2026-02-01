@@ -5,7 +5,49 @@ import json
 import pandas as pd
 import plotly.express as px
 import streamlit.components.v1 as components
+# --- [스타일 업그레이드: Custom CSS] ---
+st.markdown("""
+    <style>
+    /* 전체 폰트 및 배경 */
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
+    
+    /* 카드 스타일 디자인 */
+    .stButton>button {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        border: 1px solid #e0e0e0;
+    }
+    .stButton>button:hover {
+        border-color: #4CAF50;
+        color: #4CAF50;
+        transform: translateY(-2px);
+    }
+    
+    /* 메트릭 박스 커스텀 */
+    div[data-testid="stMetricValue"] { font-size: 24px; font-weight: 700; color: #1E88E5; }
+    
+    /* 대시보드 컨테이너 스타일 */
+    .css-1r6p8d1 { 
+        background-color: #f9f9f9; 
+        padding: 20px; 
+        border-radius: 15px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
+# --- [대시보드 상단 Metric 레이아웃] ---
+def render_top_metrics(df_actions):
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("🏃 전체 진행률", f"{df_actions['is_completed'].mean()*100:.1f}%")
+    with col2:
+        st.metric("🔥 현재 집중력", "매우 높음", "High")
+    with col3:
+        st.metric("🍪 획득한 스낵", "12개", "+2")
+    with col4:
+        st.metric("📅 남은 D-Day", "D-45")
+        
 # --- [1. 초기 설정 및 보안] ---
 st.set_page_config(page_title="LifeSync | 전인적 목표 관리", page_icon="🔄", layout="wide")
 
