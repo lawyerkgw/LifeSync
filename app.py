@@ -50,6 +50,42 @@ def render_advisor_panel(act):
         supabase.table("actions").update({"advisor_data": new_adv}).eq("id", act['id']).execute()
         st.toast("서버에 기록이 안전하게 저장되었습니다.")
 
+def generate_snack_ai(minutes, level):
+    # 전문가의 페르소나와 구체적인 출력 구조를 프롬프트에 주입
+    prompt = f"""
+    당신은 따뜻하고 유능한 라이프 코치입니다. 
+    사용자가 지금 {minutes}분 정도의 여유가 있고, 난이도 '{level}'의 활동을 원합니다.
+    사용자에게 동기를 부여할 수 있도록 5개의 스낵 챌린지를 추천해주세요.
+    
+    [응답 규칙]
+    1. 각 챌린지는 '제목', '소요시간', '이 활동이 좋은 이유(Why)', '구체적인 방법(How)'을 포함하세요.
+    2. 말투는 친절하고 격려하는 느낌으로 작성하세요.
+    3. 반드시 아래 JSON 리스트 형식으로만 응답하세요.
+    
+    JSON 형식:
+    [
+      {{
+        "title": "챌린지 제목",
+        "duration": "{minutes}분",
+        "why": "이 활동이 당신의 뇌나 기분에 주는 긍정적 효과",
+        "how": "지금 바로 따라 할 수 있는 아주 구체적인 첫 번째 단계"
+      }}
+    ]
+    """
+    try:
+        response = model.generate_content(prompt)
+        res_text = response.text
+        
+        # JSON 블록 추출 로직
+        import re
+        json_match = re.search(r'(\[.*\])', res_text, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(1))
+        return json.loads(res_text)
+    except Exception as e:
+        st.error(f"AI 조언자가 스낵을 준비하다가 실수를 했네요: {e}")
+        return None
+
 # --- [3. 메인 로직] ---
 st.sidebar.title("🔄 LifeSync")
 menu = st.sidebar.radio("메뉴", ["📅 오늘의 할 일", "🎯 새 로드맵 설계", "🍪 스낵 챌린지"])
