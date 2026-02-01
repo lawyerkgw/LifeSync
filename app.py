@@ -123,8 +123,29 @@ elif menu == "📅 오늘의 할 일":
             """
             components.html(html_code, height=500)
 
+# (3) 스낵 챌린지 메뉴 부분
 elif menu == "🍪 스낵 챌린지":
     st.header("🍪 LifeSync Snack Bar")
-    # (이전 스낵 챌린지 코드와 동일하게 구현)
-    st.write("자투리 시간을 활용한 성장 스낵입니다.")
-    # ... (생략된 스낵 로직 구현 가능)
+    st.write("당신의 소중한 자투리 시간을 위한 AI 조언자의 맞춤형 제안입니다.")
+    
+    t_limit = st.select_slider("지금 여유 시간 (분)", options=[1, 5, 10, 15, 20, 30])
+    level = st.select_slider("난이도", options=["매우 쉬움", "보통", "도전적"])
+    
+    if st.button("오늘의 맞춤 스낵 5개 뽑기"):
+        with st.spinner("AI 조언자가 당신의 상황에 맞는 활동을 고민 중입니다..."):
+            st.session_state['snack_list'] = generate_snack_ai(t_limit, level)
+            
+    if 'snack_list' in st.session_state:
+        for s in st.session_state['snack_list']:
+            with st.container(border=True):
+                sc1, sc2 = st.columns([4, 1])
+                with sc1:
+                    st.subheader(f"✨ {s['title']} ({s['duration']})")
+                    st.markdown(f"**💡 왜 해야 하나요?**\n{s.get('why', '잠시 숨을 돌리며 에너지를 충전해보세요.')}")
+                    st.info(f"**🚀 실천 가이드:** {s.get('how', '지금 바로 시작해보세요!')}")
+                
+                with sc2:
+                    st.write("") # 간격 조절
+                    if st.button("완료!", key=f"snk_{s['title']}"):
+                        st.balloons()
+                        st.toast(f"'{s['title']}' 완료! 당신의 삶이 한 뼘 더 성장했습니다.")
