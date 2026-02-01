@@ -142,22 +142,52 @@ elif menu == "📅 오늘의 할 일":
 
         with view_tab2:
             st.subheader("📍 로드맵 흐름도")
-            # Mermaid 다이어그램 동적 생성
-            mermaid_code = "graph TD\n"
-            phases = list(dict.fromkeys([a['title'].split(']')[0] + ']' for a in actions]))
-            for i, p in enumerate(phases):
-                mermaid_code += f'  P{i}["{p}"]\n'
-                if i < len(phases) - 1:
-                    mermaid_code += f"  P{i} --> P{i+1}\n"
-            
-            html_code = f"""
-                <div class="mermaid" style="display: flex; justify-content: center;">{mermaid_code}</div>
+            if not actions:
+                st.warning("표시할 단계별 과업이 없습니다.")
+            else:
+                # 1. Mermaid 문법 생성 및 특수문자 완벽 제거
+                mermaid_code = "graph TD\n"
+                
+                # 중복 제거된 Phase(단계) 리스트 생성
+                raw_phases = []
+                for a in actions:
+                    # "[Phase 1] 할일" 형태에서 "Phase 1"만 추출
+                    p_name = a['title'].split(']')[0].replace("[", "").strip()
+                    if p_name not in raw_phases:
+                        raw_phases.append(p_name)
+                
+                # 노드 정의 및 연결
+                for i, p in enumerate(raw_phases):
+                    # Mermaid 문법을 깨뜨리는 문자 제거
+                    safe_name = p.replace('"', '').replace("'", "").replace("(", "").replace(")", "")
+                    # 완료 여부에 따라 스타일 지정 가능 (향후 확장용)
+                    mermaid_code += f'  P{i}["{safe_p_name if "safe_p_name" in locals() else safe_name}"]\n'
+                    if i < len(raw_phases) - 1:
+                        mermaid_code += f"  P{i} --> P{i+1}\n"
+        
+                # 2. HTML 및 JS 렌더링 (보안 및 로딩 최적화)
+                html_code = f"""
+                <div id="mermaid-container" style="display: flex; justify-content: center; background: white; padding: 20px;">
+                    <pre class="mermaid">
+                        {mermaid_code}
+                    </pre>
+                </div>
                 <script type="module">
                     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-                    mermaid.initialize({{ startOnLoad: true, theme: 'neutral' }});
+                    // 에러 발생 시 콘솔에 출력하도록 설정
+                    mermaid.initialize({{ 
+                        startOnLoad: true, 
+                        theme: 'neutral',
+                        securityLevel: 'loose',
+                        logLevel: 'error'
+                    }});
+                    // 명시적으로 다시 렌더링 시도
+                    await mermaid.run();
                 </script>
-            """
-            components.html(html_code, height=500)
+                """
+                # height를 충분히 주어야 잘리지 않습니다.
+                components.html(html_code, height=600, scrolling=True)
+    
 
 # (3) 스낵 챌린지 메뉴 부분
 elif menu == "🍪 스낵 챌린지":
