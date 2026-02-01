@@ -112,53 +112,68 @@ if menu == "🎯 새 로드맵 설계":
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")
 
-# (2) 오늘의 할 일
+# (2) 오늘의 할 일 탭 수정 버전
 elif menu == "📅 오늘의 할 일":
-    st.header("📅 나의 실행 로드맵")
+    st.header("📅 LifeSync 실행 센터")
     
-    try:
-        goals = supabase.table("goals").select("*").order("created_at", desc=True).execute().data
-        if not goals:
-            st.info("등록된 목표가 없습니다. '새 로드맵 설계'에서 시작하세요!")
-        else:
-            col1, col2 = st.columns([1, 1])
-            
-            with col1:
-                st.subheader("📍 단계별 가이드")
-                selected_goal_title = st.selectbox("목표 선택", [g['title'] for g in goals])
-                target_goal = next(g for g in goals if g['title'] == selected_goal_title)
-                
-                actions = supabase.table("actions").select("*").eq("goal_id", target_goal['id']).execute().data
-                for a in actions:
-                    if st.button(f"{'✅' if a['is_completed'] else '⏳'} {a['title']}", key=a['id'], use_container_width=True):
-                        st.session_state['active_action'] = a
+    # 상단 탭으로 뷰 전환
+    view_tab1, view_tab2 = st.tabs(["📑 리스트형 일정", "🗺️ 로드맵 흐름도"])
+    
+    goals = supabase.table("goals").select("*").order("created_at", desc=True).execute().data
+    if not goals:
+        st.info("등록된 목표가 없습니다. '새 로드맵 설계'에서 시작하세요!")
+    else:
+        selected_goal_title = st.selectbox("집중할 목표 선택", [g['title'] for g in goals])
+        target_goal = next(g for g in goals if g['title'] == selected_goal_title)
+        actions = supabase.table("actions").select("*").eq("goal_id", target_goal['id']).execute().data
 
-            with col2:
-                st.subheader("💡 조언자 패널")
-                if 'active_action' in st.session_state:
-                    act = st.session_state['active_action']
-                    st.success(f"과업: {act['title']}")
-                    
-                    st.write("**체크포인트:**")
-                    for cp in act['advisor_data'].get('checkpoints', []):
-                        st.checkbox(cp, key=f"cp_{act['id']}_{cp}")
-                    
-                    memo = st.text_area("의사결정 메모", value=act['advisor_data'].get('notes', ""), key=f"memo_{act['id']}")
-                    
-                    c1, c2 = st.columns(2)
-                    if c1.button("완료 상태 변경"):
-                        new_status = not act['is_completed']
-                        supabase.table("actions").update({"is_completed": new_status}).eq("id", act['id']).execute()
-                        st.rerun()
-                    if c2.button("메모 저장"):
-                        new_adv = act['advisor_data']
-                        new_adv['notes'] = memo
-                        supabase.table("actions").update({"advisor_data": new_adv}).eq("id", act['id']).execute()
-                        st.toast("저장되었습니다!")
-                else:
-                    st.write("왼쪽 리스트에서 과업을 선택해 상세 조언을 확인하세요.")
-    except Exception as e:
-        st.error(f"데이터 로드 실패: {e}")
+        # --- [VIEW 1: 리스트형 일정] ---
+        with view_tab1:
+            st.subheader(f"📌 {selected_goal_title}의 할 일")
+            # 일정을 Phase별로 묶어서 보여줌
+            for a in actions:
+                col_t1, col_t2 = st.columns([4, 1])
+                status = "✅" if a['is_completed'] else "⏳"
+                if col_t1.button(f"{status} {a['title']}", key=f"list_{a['id']}", use_container_width=True):
+                    st.session_state['active_action'] = a
+                if a['is_completed']:
+                    col_t2.caption("완료됨")
+            
+            st.divider()
+            # 조언자 패널 (이전과 동일하게 유지)
+            if 'active_action' in st.session_state:
+                render_advisor_panel(st.session_state['active_action'])
+
+        # --- [VIEW 2: 로드맵 흐름도 (Mermaid)] ---
+        with view_tab2:
+            st.subheader("📍 전체 플로우차트")
+            st.write("목표의 단계별 연결성을 확인하세요.")
+            
+            # Mermaid 문법 생성
+            mermaid_code = "graph TD\n"
+            mermaid_code += f"  Start(({selected_goal_title})) --> P1\n"
+            
+            # 실제 데이터를 기반으로 노드 연결 (단순화 버전)
+            phases = list(dict.fromkeys([a['title'].split(']')[0] + ']' for a in actions]))
+            for i, p in enumerate(phases):
+                color = "fill:#dfd,stroke:#3c3" if "완료" in p else "fill:#fff,stroke:#333"
+                mermaid_code += f"  P{i}[{p}]\n"
+                if i < len(phases) - 1:
+                    mermaid_code += f"  P{i} --> P{i+1}\n"
+            
+            # Mermaid 렌더링 (HTML 사용)
+            import streamlit.components.v1 as components
+            html_code = f"""
+                <pre class="mermaid">
+                    {mermaid_code}
+                </pre>
+                <script type="module">
+                    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+                    mermaid.initialize({{ startOnLoad: true }});
+                </script>
+            """
+            components.html(html_code, height=400, scrolling=True)
+            st.caption("💡 각 단계는 선후 관계를 나타내며, 순차적으로 달성하는 것을 권장합니다.")
 
 # (3) 스낵 챌린지
 elif menu == "🍪 스낵 챌린지":
