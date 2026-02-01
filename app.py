@@ -21,7 +21,7 @@ check_secrets()
 def init_clients():
     supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel('gemini-2.0-flash-lite-preview-02-05')
+    model = genai.GenerativeModel('gemini-2.5-flash-lite')
     return supabase, model
 
 supabase, model = init_clients()
