@@ -13,8 +13,7 @@ st.set_page_config(page_title="LifeSync | 전인적 목표 관리", page_icon="�
 def init_clients():
     supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    # 사용자 지정 모델: gemini-2.0-flash-lite
-    model = genai.GenerativeModel('gemini-2.0-flash-lite-preview-02-05')
+    model = genai.GenerativeModel('gemini-2.5-flash-lite')
     return supabase, model
 
 supabase, model = init_clients()
