@@ -130,49 +130,63 @@ elif menu == "📅 오늘의 실행":
             if not actions:
                 st.info("과업 데이터가 없습니다.")
             else:
-                # 1. Mermaid 문법 생성 (특수문자 제거 강화)
-                mermaid_lines = ["graph LR"] # 왼쪽에서 오른쪽으로 흐름
+                # 1. Mermaid 문법 생성 (ID와 텍스트 분리형)
+                mermaid_lines = ["graph LR"]
                 
-                # 목표(비전) 노드
-                safe_goal = target['title'].replace('"', "'")
-                mermaid_lines.append(f'  Goal(( "{safe_goal}" ))')
+                # 특수문자 제거 함수 정의
+                import re
+                def clean_text(text):
+                    # 영문, 한글, 숫자만 남기고 모두 제거 (Mermaid 예약어 충돌 방지)
+                    return re.sub(r'[^a-zA-Z0-9가-힣\s]', '', text)
+
+                # 목표(비전) 노드: ID는 고정하고 텍스트만 청소
+                goal_text = clean_text(target['title'])
+                mermaid_lines.append(f'  GOAL["🎯 {goal_text}"]')
                 
-                # 마일스톤별 그룹화 및 연결
+                # 마일스톤 추출 및 ID 부여
                 phases = []
                 for a in actions:
                     p_name = a['title'].split(']')[0].replace("[", "").strip()
                     if p_name not in phases:
                         phases.append(p_name)
                 
+                # 노드 생성 및 연결
                 for i, p in enumerate(phases):
-                    safe_p = p.replace('"', "'")
-                    mermaid_lines.append(f'  P{i}["{safe_p}"]')
+                    p_text = clean_text(p)
+                    # ID는 P0, P1 식으로 부여하여 문법 오류 원천 차단
+                    mermaid_lines.append(f'  P{i}["📍 {p_text}"]')
+                    
                     if i == 0:
-                        mermaid_lines.append(f'  Goal --> P{0}')
-                    if i < len(phases) - 1:
-                        mermaid_lines.append(f'  P{i} --> P{i+1}')
+                        mermaid_lines.append(f'  GOAL --> P0')
+                    else:
+                        mermaid_lines.append(f'  P{i-1} --> P{i}')
                 
                 mermaid_code = "\n".join(mermaid_lines)
 
-                # 2. HTML 렌더링 (CDN 주소와 초기화 로직 보강)
+                # 2. HTML 렌더링 (에러 시 시각적 피드백 추가)
                 html_content = f"""
-                <div id="graph-container" style="display: flex; justify-content: center; background: white; padding: 20px; border-radius: 10px;">
+                <div id="graph-container" style="display: flex; justify-content: center; background: #f8f9fa; padding: 20px; border-radius: 15px;">
                     <pre class="mermaid">
                         {mermaid_code}
                     </pre>
                 </div>
                 <script type="module">
                     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.esm.min.mjs';
-                    mermaid.initialize({{ 
-                        startOnLoad: true, 
-                        theme: 'neutral',
-                        securityLevel: 'loose'
-                    }});
-                    // 명시적 렌더링 호출
-                    await mermaid.run();
+                    try {{
+                        mermaid.initialize({{ 
+                            startOnLoad: true, 
+                            theme: 'neutral',
+                            securityLevel: 'loose',
+                            flowchart: {{ useMaxWidth: true, htmlLabels: true }}
+                        }});
+                        await mermaid.run();
+                    }} catch (e) {{
+                        console.error("Mermaid 렌더링 에러:", e);
+                        document.getElementById('graph-container').innerHTML = "<p style='color:red;'>차트 생성 중 문법 오류가 발생했습니다. 데이터를 리셋하거나 특수문자를 확인해주세요.</p>";
+                    }}
                 </script>
                 """
-                components.html(html_content, height=400, scrolling=True)
+                components.html(html_content, height=500, scrolling=True)
 
 # (3) 로드맵 설계 (Hierarchical)
 elif menu == "🎯 로드맵 설계":
